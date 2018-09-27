@@ -1,7 +1,8 @@
 const path = require('path');
 const {VueLoaderPlugin} = require('vue-loader');
-const HtmlPlugin = require('html-webpack-plugin');
+const HtmlPlugin = require('html-webpack-plugin');// 针对html来单独进行处理
 const webpack = require('webpack');
+const ExtractPlugin = require('extract-text-webpack-plugin');//针对css进行单独压缩处理
 
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -11,11 +12,15 @@ const config = {
     // 编译的目标是web环境下
     target: "web",
     // 页面入口，通过路径拼接来配置入口js
-    entry: path.join(__dirname, 'src/index.js'),
+    entry: {
+        app:path.join(__dirname, 'src/index.js'),
+        // 把类库单独打包
+        vendor:['vue']
+    },
     //打包后的输出文件
     output: {
         // 打包成的文件的名字
-        filename: "bundle.js",
+        filename: "[name].[hash:8].js",
         // 文件打包后的路径
         path: path.join(__dirname, 'dist')
     },
@@ -83,6 +88,20 @@ const config = {
                     },
                     'stylus-loader'
                 ]
+                // use:ExtractPlugin.extract({
+                //     fallback:'style-loader',
+                //     use:[
+                //         'style-loader',
+                //         'css-loader',
+                //         {
+                //             loader:'postcss-loader',
+                //             options:{
+                //                 sourceMap:true
+                //             }
+                //         },
+                //         'stylus-loader'
+                //     ]
+                // })
             }
         ]
     },
@@ -100,7 +119,13 @@ const config = {
         // 自动清理不必要的一些信息
         new webpack.NoEmitOnErrorsPlugin(),
         // 支持Hot功能
-        new webpack.HotModuleReplacementPlugin()
+        new webpack.HotModuleReplacementPlugin(),
+        // 处理css
+        new ExtractPlugin('styles.[hash:8].css'),
+        // 类库单独打包 webpack4.0废除Commons 使用此插件
+        new webpack.optimize.SplitChunksPlugin({
+            name:'vendor'
+        })
     ]
 }
 
