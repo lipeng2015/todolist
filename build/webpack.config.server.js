@@ -3,29 +3,29 @@ const {VueLoaderPlugin} = require('vue-loader');
 const HtmlPlugin = require('html-webpack-plugin');// 针对html来单独进行处理
 const webpack = require('webpack');
 const ExtractPlugin = require('extract-text-webpack-plugin');//针对css进行单独压缩处理
-
+const VueServerPlugin = require('vue-server-renderer/server-plugin');
 
 const isDev = process.env.NODE_ENV === 'development';
 
 const config = {
     mode: 'development',
-    // 编译的目标是web环境下
-    target: "web",
+
+    // 编译的目标是node环境下
+    target: "node",
     // 页面入口，通过路径拼接来配置入口js
-    entry: {
-        app:path.join(__dirname, 'src/index.js'),
-        // 把类库单独打包
-        vendor:['vue']
-    },
+    entry:path.join(__dirname, '../client/server-entry.js'),
     //打包后的输出文件
     output: {
-        // 打包成的文件的名字
-        filename: "[name].[hash:8].js",
-        // 文件打包后的路径
-        path: path.join(__dirname, 'dist')
+        // 入口的形式
+        libraryTarget: "commonjs2",
+        filename: "server-entry.js",
+        path: path.join(__dirname,'../server-build'),
+
     },
     // 配置的话调试的时候可以看到自己源码
-    devtool: "#cheap-module-eval-source-map",
+    devtool: "#source-map",
+    // 不打包这些文件，避免与客户端重复打包
+    externals: Object.keys(require('../package').dependencies),
     devServer: {
         port: 8000,
         host: '0.0.0.0',
@@ -39,6 +39,7 @@ const config = {
         hot:true,
     },
     module: {
+        // 在node端打包的时候不需要这些
         rules: [
             {
                 // 配置加载vue文件
@@ -69,7 +70,7 @@ const config = {
                             // 多大的图片转成base64
                             limit: 1024,
                             //ext 为扩展名
-                            name: '[name]-[hash].[ext]'
+                            name: 'resources/[path][name]-[hash].[ext]'
                         }
                     }
                 ]
@@ -77,17 +78,19 @@ const config = {
             },
             {
                 test: /\.styl/,
-                use: [
-                    'style-loader',
-                    'css-loader',
-                    {
-                        loader:'postcss-loader',
-                        options:{
-                            sourceMap:true
-                        }
-                    },
-                    'stylus-loader'
-                ]
+                use: ExtractPlugin.extract({
+                    fallback:'vue-style-loader',
+                    use:[
+                        'css-loader',
+                        {
+                            loader:'postcss-loader',
+                            options:{
+                                sourceMap:true
+                            }
+                        },
+                        'stylus-loader'
+                    ]
+                })
             }
         ]
     },
@@ -99,13 +102,11 @@ const config = {
         new webpack.DefinePlugin({
             'process.env': {
                 // 可以在代码中引用
-                NODE_ENV: isDev ? '"development"' : '"production"'
+                NODE_ENV: isDev ? '"development"' : '"production"',
+                VUE_ENV:'"server"'
             }
         }),
-        // 自动清理不必要的一些信息
-        new webpack.NoEmitOnErrorsPlugin(),
-        // 支持Hot功能
-        new webpack.HotModuleReplacementPlugin(),
+        new VueServerPlugin(),
         // 处理css
         new ExtractPlugin('styles.[hash:8].css'),
         // 类库单独打包 webpack4.0废除Commons 使用此插件

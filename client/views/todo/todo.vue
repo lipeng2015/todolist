@@ -1,14 +1,19 @@
 <template>
     <section class="real-app">
+        <!--<tabs value="1">-->
+            <!--<tab label="tab1" index="1"></tab>-->
+            <!--<tab index="2"><span slot="label" style="color: red">tab2</span></tab>-->
+            <!--<tab label="tab3" index="3"></tab>-->
+        <!--</tabs>-->
         <input type="text" class="add-input" autofocus="autofocus" placeholder="接下去要做什么？" @keyup.enter="addTodo">
         <Item :todo="todo" v-for="todo in filterTodos" :key="todo.id" @del="deleteTodo"/>
-        <Tabs :filter="filter" :todos="filterTodos" @toggle="toggleFilter" @clearAll="claerAllCompleted"></Tabs>
+        <Helper :filter="filter" :todos="filterTodos" @toggle="toggleFilter" @clearAll="claerAllCompleted"></Helper>
     </section>
 </template>
 
 <script>
     import Item from '../todo/item.vue';
-    import Tabs from '../todo/tabs.vue';
+    import Helper from '../todo/tabs.vue';
 
     let id = 0;
     export default {
@@ -41,6 +46,14 @@
                 this.todos = this.todos.filter(todo=>!todo.completed);
             }
         },
+        // 不会默认执行
+        asyncData(){
+            return new Promise((resolve => {
+                setTimeout(()=>{
+                    resolve(123);
+                },1000);
+            }))
+        },
         computed: {
             // 提前把过滤好的数据传给子控件
             filterTodos() {
@@ -52,7 +65,7 @@
             }
         },
         components: {
-            Item, Tabs
+            Item, Helper
         }
     };
 </script>
